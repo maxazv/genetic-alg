@@ -7,15 +7,13 @@ class Brain():
         self.network = []
         self.setup()
 
-
     def setup(self):
         for i in range(len(self.layer_shapes)-1):
             self.network.append(Dense(self.layer_shapes[i], self.layer_shapes[i+1]))
             self.network.append(Tanh)
 
-
-    def decide(self, x):
-        output = x
+    def decide(self, inp):
+        outp = inp
         for layer in self.network:
-            output = layer.fforward(output)
+            output = layer.fforward(outp)
         return output
