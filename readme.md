@@ -1,1 +1,0 @@
-# Neuroevolutionary Algorithm
