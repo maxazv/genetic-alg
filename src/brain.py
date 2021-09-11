@@ -2,7 +2,7 @@ from dense import Dense
 from activations import Tanh
 
 class Brain():
-    def __init__(self, layer_shapes) -> None:
+    def __init__(self, layer_shapes):
         self.layer_shapes = layer_shapes
         self.network = []
         self.setup()
@@ -10,10 +10,10 @@ class Brain():
     def setup(self):
         for i in range(len(self.layer_shapes)-1):
             self.network.append(Dense(self.layer_shapes[i], self.layer_shapes[i+1]))
-            self.network.append(Tanh)
+            self.network.append(Tanh())
 
     def decide(self, inp):
-        outp = inp
+        x = inp
         for layer in self.network:
-            output = layer.fforward(outp)
-        return output
+            x = layer.fforward(x)
+        return x
