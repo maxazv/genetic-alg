@@ -1,7 +1,3 @@
-# TODO: init multiple droids with random 'brains'
-#       make fitness function (e.g. selection)
-#       add mutations, crossover
-#       further research, evaluate input/ output nodes of brain
 from droid import Droid
 from graphics import *
 import numpy as np
@@ -90,7 +86,7 @@ def crossover(droids, att):     # FIXME: might be wrong/ 'inefficient'
     
     return new_gen
 
-def make_child(p1, p2): # TODO: implement
+def make_child(p1, p2):
     child = p1
     for i in range(len(p1.brain.network)):
         if i%2 == 0:
@@ -142,9 +138,9 @@ def mutate(droids):
     # whether weight is mutated or not is determined by chance
     for droid in droids:
         for i in range(len(droid.brain.network)):
-            if i%2 == 0:    # dense layer -> mutate weights slightly
-                pass        # TODO
-            else:           # activation layer -> no weights to be mutated
+            if i%2 == 0:    # dense layer ↓
+                pass        # TODO: mutate weights slightly
+            else:           # activation layer → no weights to be mutated
                 continue
 
 
