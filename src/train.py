@@ -4,6 +4,7 @@ import numpy as np
 import random as rand
 
 
+
 # ----constants
 WINDOW_WIDTH = 400
 WINDOW_HEIGHT = 400
@@ -12,6 +13,7 @@ GEN_AMOUNT = 10
 APEX_SURVIVORS = 0.25
 
 MUTATION_RATE = 0.3
+
 
 
 # ----setup
@@ -30,21 +32,23 @@ def main():
     t_greyscale = 165
     t_outline = int(t_greyscale*0.35)
 
+
     # draw
     target = Circle(target_pos, 5)
     target.setFill(color_rgb(t_greyscale, t_greyscale, t_greyscale))
     target.setOutline(color_rgb(t_greyscale-t_outline, t_greyscale-t_outline, t_greyscale-t_outline))
     target.draw(win)
-    #while True:
-    #    pass
+
 
     # close
     win.getMouse()
     win.close()
 
 
+
 # ----helpers
-def perform(it, droids, target):
+# TODO: test basically everything
+def perform(droids, target, it=50):
     # let droids try to seek target using their "brain" (use 2d rendering for python for vis)
     # track score of every droid (score[n] = dist(gen[n], target))
     pos_target = np.array(target.getCenter())
@@ -68,34 +72,46 @@ def eval(droids, target):
         dist = np.sum(np.power(d_t, 2))
         droid.score = dist
 
-def crossover(droids, att):     # FIXME: might be wrong/ 'inefficient'
+
+def crossover(droids, att):
     # randomly select droids from gen to breed new child with their nn-weights/ -biases
-    # selection biased by their performance e.g. better score more likely to be selected
+    # selection biased by their performance e.g. better score -> more likely to be selected
     gen_apex = int(len(droids)*APEX_SURVIVORS)
     selected = select_by_fitness(droids, gen_apex)
     new_gen = selected[gen_apex:]
 
     for i in range(GEN_AMOUNT):
-        while att > 0:
+        atmpt = att
+        while atmpt > 0:
             p1 = rand.randint(0, len(selected))
             p2 = rand.randint(0, len(selected))
             if p1 == p2:
-                att -= 1
+                atmpt -= 1
                 continue
             new_gen.append(make_child(selected[p1], selected[p2]))
-    
     return new_gen
 
-def make_child(p1, p2):
+def make_child(p1, p2):     # TODO: test
     child = p1
+
     for i in range(len(p1.brain.network)):
         if i%2 == 0:
-            pass        # TODO: select weights from p1 or p2 (50%)
+            shape_w, shape_b = p1.brain.network[i].w.shape, p1.brain.network[i].b.size
+            p_weights = [p1.brain.network[i].w, p2.brain.network[i].w]
+            p_bias = [p1.brain.network[i].b, p2.brain.network[i].b]
+
+            w = np.random.randint(2, size=shape_w) # np-arr 0 or 1 (random)
+            cross_w = np.choose(w, p_weights) # every iter. choose weights from p1 or p2 based on w
+            
+            b = np.random.randint(2, size=shape_b)
+            cross_b = np.choose(b, p_bias)
+            
+            child.brain.network.w, child.brain.network.b = cross_w, cross_b
         else:
             continue
     return child
 
-def select_by_fitness(droids, gen_apex):
+def select_by_fitness(droids, gen_apex):    # TODO: test
     sum_scores = 0
     selected = []
     quicksort(droids)
@@ -104,12 +120,15 @@ def select_by_fitness(droids, gen_apex):
         sum_scores += droid.score
 
     for droid in droids:
-        rand = rand.randint(0, sum_scores)
         if gen_apex > 0:
             selected.append(droid)
-        else:
-            selected.append(droid) if droid.score > rand else selected = selected
+            continue
+
+        rand = rand.randint(0, sum_scores)
+        if(droid.score > rand):
+            selected.append(droid)
         gen_apex -= 1
+
     return selected
 
 def partition(arr, low, high):
@@ -133,15 +152,23 @@ def quicksort(arr, low, high):
         quicksort(arr, low, pi-1)
         quicksort(arr, pi+1, high)
 
-def mutate(droids):
+
+def mutate(droids):     # TODO: test
     # slightly mutate randomly selected weights
     # whether weight is mutated or not is determined by chance
     for droid in droids:
         for i in range(len(droid.brain.network)):
-            if i%2 == 0:    # dense layer ↓
-                pass        # TODO: mutate weights slightly
-            else:           # activation layer → no weights to be mutated
+            if i%2 == 0:    # dense layer
+                layer = droid.brain.network[i]
+
+                cond = [layer.w > MUTATION_RATE, layer.w <= MUTATION_RATE]
+                choice = [layer.w, layer.w*np.random.normal(-2, 2)]
+                mut_weights = np.select(cond, choice)
+
+                droid.brain.network[i] = mut_weights
+            else:           # activation layer → no weights, bias to be mutated
                 continue
+
 
 
 # ----run
