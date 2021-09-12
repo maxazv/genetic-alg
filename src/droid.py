@@ -11,9 +11,10 @@ class Droid():
 
     def move(self, target):
         new_pos = self.brain.decide(target)
-        
+
         dir = Point(new_pos[0][0]*SCALAR, new_pos[1][0]*SCALAR)
-        self.pos.x, self.pos.y = self.pos.x + dir.x, self.pos.y + dir.y
+        self.pos.x += dir.x
+        self.pos.y += dir.y
 
         return dir
 
