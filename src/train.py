@@ -11,6 +11,9 @@ WINDOW_WIDTH = 400
 WINDOW_HEIGHT = 400
 GEN_AMOUNT = 10
 
+MUTATION_RATE = 0.8
+
+
 def init(amount):
     first_gen = [Droid([2, 5, 5, 2]) for i in range(amount)]
     target_x, target_y = rand.random()*WINDOW_WIDTH, rand.random()*WINDOW_HEIGHT
@@ -22,7 +25,7 @@ gen, target = init(GEN_AMOUNT)
 
 def perform():
     # let droids try to seek target using their "brain" (use 2d rendering for python for vis)
-    # track score of every droid
+    # track score of every droid (score[n] = dist(gen[n], target))
     pass
 
 def eval():
@@ -35,6 +38,8 @@ def eval():
 def crossover():
     # randomly select droids from gen to breed new child with their nn-weights/ -biases
     # selection biased by their performance e.g. better score more likely to be selected
+    pass
+def select_by_fitness():
     pass
 
 def mutate():
