@@ -16,8 +16,6 @@ APEX_SURVIVORS = 0.25
 
 MUTATION_RATE = 0.3
 
-OUTPUT_SCALER = 7.25
-
 
 
 # ----setup
@@ -50,6 +48,7 @@ def main():
     target.setOutline(color_rgb(t_greyscale-t_outline, t_greyscale-t_outline, t_greyscale-t_outline))
     items.append(target)
 
+
     # -draw-
     show(items, win)
     for i in range(iter):
@@ -57,9 +56,10 @@ def main():
         update(30)
     
     # TODO: test funcs below
-    #eval(gen, target_pos)
+    eval(gen, target_pos)
     #new_gen = crossover(gen)
     #mutate(new_gen)
+
 
     # -close-
     win.getMouse()
@@ -82,10 +82,8 @@ def perform(items, gen):
         inp_d = conv_pnt(gen[i].pos)
         total_inp = np.concatenate((inp_t, inp_d), axis=0)
 
-        gen[i].move(total_inp)
-        gen[i].pos.x *= OUTPUT_SCALER
-        gen[i].pos.y *= OUTPUT_SCALER
-        droids[i].move(gen[i].pos.getX(), gen[i].pos.getY())
+        dir = gen[i].move(total_inp)
+        droids[i].move(dir.getX(), dir.getY())
 
 def conv_pnt(p, shape=(2, 1)):
     return np.array([p.getX(), p.getY()]).reshape(2, 1)
@@ -96,10 +94,13 @@ def eval(droids, target):
     # with the help of crossover breed new droids
     # slightly mutate new bred droids
     # keep best performing droids from previous gen
+    target = conv_pnt(target)
     for droid in droids:
-        d_t = np.subtract(target, droid.pos)
-        dist = np.sum(np.power(d_t, 2))
-        droid.score = dist
+        conv_pos = conv_pnt(droid.pos)
+        d = np.subtract(target, conv_pos)
+        dist = np.sum(np.power(d, 2))
+        droid.score = 1/dist
+        print(droid.score)
 
 
 def crossover(droids, att):

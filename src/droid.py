@@ -1,9 +1,7 @@
 from brain import Brain
 from graphics import Point
 
-b = Brain([1, 2, 2])
-input = 2
-b.decide(input)
+SCALAR = 7.25
 
 class Droid():
     def __init__(self, layer_shapes, pos=Point(0, 0)) -> None:
@@ -13,6 +11,10 @@ class Droid():
 
     def move(self, target):
         new_pos = self.brain.decide(target)
-        self.pos = Point(new_pos[0][0], new_pos[1][0])
+        
+        dir = Point(new_pos[0][0]*SCALAR, new_pos[1][0]*SCALAR)
+        self.pos.x, self.pos.y = self.pos.x + dir.x, self.pos.y + dir.y
+
+        return dir
 
     
