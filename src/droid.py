@@ -6,9 +6,9 @@ input = 2
 b.decide(input)
 
 class Droid():
-    def __init__(self) -> None:
-        self.brain = Brain([2, 5, 5, 2])
-        self.pos = np.array([])
+    def __init__(self, layer_shapes) -> None:
+        self.brain = Brain(layer_shapes)
+        self.pos = np.array([0, 0])
 
     def move(self, target):
         new_pos = self.brain.decide(target)
