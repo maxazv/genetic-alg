@@ -1,4 +1,6 @@
 from droid import Droid
+
+import time
 from graphics import *
 import numpy as np
 import random as rand
@@ -14,52 +16,79 @@ APEX_SURVIVORS = 0.25
 
 MUTATION_RATE = 0.3
 
+OUTPUT_SCALER = 7.25
+
 
 
 # ----setup
 def init(amount):
-    first_gen = [Droid([2, 5, 5, 2]) for i in range(amount)]
+    first_gen = [Droid([4, 5, 5, 2], Point(200, 200)) for i in range(amount)]
     target_x, target_y = rand.random()*WINDOW_WIDTH, rand.random()*WINDOW_HEIGHT
     target = Point(target_x, target_y)
     return first_gen, target
 
 def main():
-    # setup
-    win = GraphWin("Simul", WINDOW_WIDTH, WINDOW_HEIGHT)
+    # -setup-
+    win = GraphWin("Simul", WINDOW_WIDTH, WINDOW_HEIGHT, autoflush=False)
     win.setBackground(color_rgb(50, 48, 60))
 
+    iter = 50
+
+    items = []
     gen, target_pos = init(GEN_AMOUNT)
     t_greyscale = 165
     t_outline = int(t_greyscale*0.35)
 
+    for obj in gen:
+        graph_obj = Circle(obj.pos, 5)
+        graph_obj.setFill(color_rgb(rand.randint(0, 255), rand.randint(0, 255), rand.randint(0, 255)))
+        graph_obj.setOutline(color_rgb(t_greyscale-t_outline, t_greyscale-t_outline, t_greyscale-t_outline))
+        items.append(graph_obj)
 
-    # draw
-    target = Circle(target_pos, 5)
+    target = Circle(target_pos, 10)
     target.setFill(color_rgb(t_greyscale, t_greyscale, t_greyscale))
     target.setOutline(color_rgb(t_greyscale-t_outline, t_greyscale-t_outline, t_greyscale-t_outline))
-    target.draw(win)
+    items.append(target)
 
+    # -draw-
+    show(items, win)
+    for i in range(iter):
+        perform(items, gen)
+        update(30)
+    
+    # TODO: test funcs below
+    #eval(gen, target_pos)
+    #new_gen = crossover(gen)
+    #mutate(new_gen)
 
-    # close
+    # -close-
     win.getMouse()
     win.close()
 
 
+def show(items, win):
+    for item in items:
+        item.draw(win)
+
+
 
 # ----helpers
-# TODO: test basically everything
-def perform(droids, target, it=50):
-    # let droids try to seek target using their "brain" (use 2d rendering for python for vis)
-    # track score of every droid (score[n] = dist(gen[n], target))
-    pos_target = np.array(target.getCenter())
-    while it > 0:
-        for droid in droids:
-            droid.move(pos_target)
-        it -= 1
+def perform(items, gen):
+    droids, target = items[:GEN_AMOUNT], items[GEN_AMOUNT:][0]
+    pos_t = target.getCenter()
 
-    eval(droids, pos_target)
-    new_gen = crossover(droids)
-    mutate(new_gen)
+    for i in range(len(gen)):
+        inp_t = conv_pnt(pos_t)
+        inp_d = conv_pnt(gen[i].pos)
+        total_inp = np.concatenate((inp_t, inp_d), axis=0)
+
+        gen[i].move(total_inp)
+        gen[i].pos.x *= OUTPUT_SCALER
+        gen[i].pos.y *= OUTPUT_SCALER
+        droids[i].move(gen[i].pos.getX(), gen[i].pos.getY())
+
+def conv_pnt(p, shape=(2, 1)):
+    return np.array([p.getX(), p.getY()]).reshape(2, 1)
 
 
 def eval(droids, target):
