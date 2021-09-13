@@ -137,7 +137,7 @@ def perform(items, gen):
 def conv_pnt(p, shape=(2, 1)):
     return np.array([p.getX(), p.getY()]).reshape(2, 1)
 def dist(p1, p2):
-    dx, dy = p1.getX()-p2.getX(), p2.getY()-p1.getY()
+    dx, dy = p2.getX()-p1.getX(), p2.getY()-p1.getY()
     dist = math.sqrt(sum([pow(dx, 2), pow(dy, 2)]))
     return dist
 
@@ -152,10 +152,11 @@ def eval(droids, target):
         #if droid.pos.x < 0 or droid.pos.y < 0 or droid.pos.x > WINDOW_WIDTH and droid.pos.y > WINDOW_HEIGHT:
         #    droid.alive = False
         #    print('dead')
-        dx = target.x - droid.pos.x
-        dy = target.y - droid.pos.y
-        dist = math.sqrt(sum([pow(dx, 2), pow(dy, 2)]))
-        droid.score = int((10/(dist-(dist*0.75)))*100)
+        dst = dist(target, droid.pos)
+        #dx = target.x - droid.pos.x
+        #dy = target.y - droid.pos.y
+        #dist = math.sqrt(sum([pow(dx, 2), pow(dy, 2)]))
+        droid.score = int((10/(dst-(dst*0.75)))*100)
 
     c=0
     for i in range(len(droids)-c):
