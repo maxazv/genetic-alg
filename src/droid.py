@@ -5,9 +5,12 @@ SCALAR = 7.25
 
 class Droid():
     def __init__(self, layer_shapes, pos=Point(0, 0)) -> None:
+        self.origin = pos
         self.brain = Brain(layer_shapes)
         self.pos = pos
         self.score = -1
+
+        self.alive = True
 
     def move(self, target):
         new_pos = self.brain.decide(target)
