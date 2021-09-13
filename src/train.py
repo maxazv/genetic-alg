@@ -58,32 +58,42 @@ def main(verbose):
     items.append(target)
 
 
-    # FIXME: pop decreasing even though crossover prevents that
+    # FIXME: selected decreasing even though crossover prevents that
     # FIXME: apex droids are still being "replaced"
     # -draw-    
     show(items[GEN_AMOUNT:], win)
 
     for i in range(iter):
         show(items[:GEN_AMOUNT], win)
+        print_score(gen, 0, len(gen), "Current Gen:")
+
         for j in range(steps):
             perform(items, gen)
             update(30)
 
         time.sleep(0.25)
+        #assign score to droids based on fitness func
         eval(gen, target_pos)
         gen = gen[::-1]
-        new_gen = crossover(gen, 10)
-        mutate(new_gen) # FIXME: only mutate children
 
-        survived = len(gen)-1
-        #print("Survived:", survived)
-        print_score(gen, 0, int(GEN_AMOUNT*0.3), "Apex Droids:")
+        #conserve best droids
+        gen_apex = int(len(gen) * APEX_SURVIVORS)
+        new_gen = gen[:gen_apex]
+        survived = len(new_gen)
+        print("Survivors:", [x.score for x in new_gen])
+
+        #crossover & mutation
+        new_gen.extend(crossover(gen, 10, survived))
+        # mutate(new_gen) # FIXME: only mutate children
+
         print("Gen Pop:", len(new_gen))
 
+        #update new generation
         gen = new_gen
-        items = items[GEN_AMOUNT:]  # target
-        items[0:0] = [Circle(Point(200, 200), 5) for x in gen]
+        items = [Circle(Point(200, 200), 5) for x in gen]
+        items.append(target)
 
+        print()
         update()
 
     if verbose:
@@ -132,6 +142,7 @@ def dist(p1, p2):
     return dist
 
 
+
 def eval(droids, target):
     # use tracked scores and fitness func to select best performing droids
     # with the help of crossover breed new droids
@@ -153,20 +164,16 @@ def eval(droids, target):
             c+=1
 
     quicksort(droids, 0, len(droids)-1)
-    droids = droids[::-1]
 
 
-
-def crossover(droids, att):
+def crossover(droids, att, survivors):
     # randomly select droids from gen to breed new child with their nn-weights/ -biases
     # selection biased by their performance e.g. better score -> more likely to be selected
-    gen_apex = int(len(droids)*APEX_SURVIVORS)
-    # gen_apex = 5
-    selected = select_by_fitness(droids, gen_apex)
+    selected = select_by_fitness(droids)
 
-    new_gen = selected[:gen_apex]
+    new_gen = []
     print("Crossover Selected:", len(selected))
-    for i in range(GEN_AMOUNT-gen_apex):
+    for i in range(GEN_AMOUNT-survivors):
         atmpt = att
         while atmpt > 0:
             p1 = rand.randint(0, len(selected)-1)
@@ -198,27 +205,21 @@ def make_child(p1, p2):
             continue
     return child
 
-def select_by_fitness(droids, gen_apex):
+def select_by_fitness(droids):
     avg_scores = 0
     selected = []
 
-    for droid in droids[gen_apex:]:
-        avg_scores += droid.score
-
-    avg_scores //= int(len(droids)*0.45)
-    # print("Average Score:", avg_scores)
     for droid in droids:
-        if gen_apex > 0:
-            #print("A")
-            selected.append(droid)
-            gen_apex -= 1
-            continue
-        
+        avg_scores += droid.score
+    avg_scores = int(avg_scores)
+    avg_scores //= int(len(droids)*0.45)
+    print("Average Score:", avg_scores)
+
+    for droid in droids:
         prob = rand.randint(0, avg_scores)
         if(droid.score > prob):
-            #print("B")
+            #print(droid.score)
             selected.append(droid)
-
     return selected
 
 def partition(arr, low, high):
