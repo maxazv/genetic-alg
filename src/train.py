@@ -1,8 +1,10 @@
+from typing import Dict
 from droid import Droid
 
 from graphics import *
 import numpy as np
 import random as rand
+import math
 
 
 
@@ -56,17 +58,15 @@ def main():
     
     eval(gen, target_pos)
 
-    for d in gen:
-        l = Line(target_pos, d.pos).draw(win)
-        l.setFill('white')
-        l.setWidth(0.05)
-        tx, ty = d.pos.x, d.pos.y - 13
-        t = Text(Point(tx, ty), str(d.score)).draw(win)
-        t.setFill('white')
-        t.setSize(10)
+    '''for d in gen:
+        line(target_pos, d.pos, win)
+
+        t = Text(Point(d.pos.x, d.pos.y-13), str(d.score)).draw(win)
+        t.setFill(color_rgb(115, 112, 119))
+        t.setSize(10)'''
 
     new_gen = crossover(gen, 10)
-    #mutate(new_gen)
+    mutate(new_gen)
 
     # -close-
     win.getMouse()
@@ -76,7 +76,11 @@ def main():
 def show(items, win):
     for item in items:
         item.draw(win)
-
+def line(p1, p2, win, color=color_rgb(115, 112, 119)):
+    l = Line(p1, p2)
+    l.setFill(color)
+    l.setWidth(0.05)
+    l.draw(win)
 
 
 # ----helpers
@@ -94,6 +98,10 @@ def perform(items, gen):
 
 def conv_pnt(p, shape=(2, 1)):
     return np.array([p.getX(), p.getY()]).reshape(2, 1)
+def dist(p1, p2):
+    dx, dy = p1.getX()-p2.getX(), p2.getY()-p1.getY()
+    dist = math.sqrt(sum([pow(dx, 2), pow(dy, 2)]))
+    return dist
 
 
 def eval(droids, target):
@@ -104,8 +112,8 @@ def eval(droids, target):
     for droid in droids:
         dx = target.x - droid.pos.x
         dy = target.y - droid.pos.y
-        dist = sum([pow(dx, 2), pow(dy, 2)])
-        droid.score = int((100/(dist-(dist*0.65)))*1000)
+        dist = math.sqrt(sum([pow(dx, 2), pow(dy, 2)]))
+        droid.score = int((10/(dist-(dist*0.65)))*100)
 
 
 def crossover(droids, att):
@@ -129,9 +137,8 @@ def crossover(droids, att):
 
     return new_gen
 
-def make_child(p1, p2):     # TODO: test for weight change due to err in mutate
+def make_child(p1, p2):
     child = p1
-
     for i in range(len(p1.brain.network)):
         if i%2 == 0:
             shape_w, shape_b = p1.brain.network[i].w.shape, p1.brain.network[i].b.size
@@ -145,7 +152,6 @@ def make_child(p1, p2):     # TODO: test for weight change due to err in mutate
             cross_b = np.choose(b, p_bias)
             
             child.brain.network[i].w, child.brain.network[i].b = cross_w, cross_b
-            # print(child.brain.network[i].w, "\n", child.brain.network[i].b)
         else:
             continue
     return child
@@ -194,22 +200,27 @@ def quicksort(arr, low, high):
         quicksort(arr, pi+1, high)
 
 
-def mutate(droids):     # TODO: mutate bias + test
+def mutate(droids):
     # slightly mutate randomly selected weights
     # whether weight is mutated or not is determined by chance
-    c = 0
     for droid in droids:
-        c += 1
         for i in range(len(droid.brain.network)):
             if i%2 == 0:    # dense layer
                 layer = droid.brain.network[i]
-                # print(c, layer)     # FIXME some layer is weight-arr instead layer-obj
+                prob_w = np.random.uniform(0, 1, size=layer.w.shape)
+                prob_b = np.random.uniform(0, 1, size=(layer.b.size, 1))
 
-                cond = [layer.w > MUTATION_RATE, layer.w <= MUTATION_RATE]
-                choice = [layer.w, layer.w*np.random.normal(-2, 2)]
-                mut_weights = np.select(cond, choice)
+                cond_w = [prob_w > MUTATION_RATE, prob_w <= MUTATION_RATE]
+                cond_b = [prob_b > MUTATION_RATE, prob_b <= MUTATION_RATE]
 
-                droid.brain.network[i] = mut_weights
+                choice_w = [layer.w, layer.w*np.random.normal(-2, 2)]
+                choice_b = [layer.b, layer.b*np.random.normal(-2, 2)]
+
+                mut_weights = np.select(cond_w, choice_w)
+                mut_bias = np.select(cond_b, choice_b)
+
+                droid.brain.network[i].w = mut_weights
+                droid.brain.network[i].b = mut_bias
             else:           # activation layer → no weights, bias to be mutated
                 continue
 
