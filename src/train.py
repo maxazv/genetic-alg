@@ -1,6 +1,8 @@
 from hashlib import new
 from tkinter import Canvas
 from typing import Dict
+
+from numpy.lib.function_base import select
 from droid import Droid
 
 from graphics import *
@@ -57,6 +59,7 @@ def main(verbose):
 
 
     # -draw-
+    survived = 0
     show(items[GEN_AMOUNT:], win)
     for i in range(iter):
         show(items[:GEN_AMOUNT], win)
@@ -68,8 +71,11 @@ def main(verbose):
         gen = gen[::-1]
         new_gen = crossover(gen, 10)
         mutate(new_gen)
+
+        survived = len(gen)
         print_score(gen, 0, int(GEN_AMOUNT*0.3), "Apex Droids:")
         print(len(new_gen))
+
         gen = new_gen
         items = items[GEN_AMOUNT:]
         items[0:0] = [Circle(x.pos, 5) for x in gen]
@@ -157,7 +163,8 @@ def crossover(droids, att):
     for i in range(GEN_AMOUNT-gen_apex):
         atmpt = att
         while atmpt > 0:
-            # FIXME
+            # FIXME: length of selected suddenly -> 0
+            print(len(selected))
             p1 = rand.randint(0, len(selected)-1)
             p2 = rand.randint(0, len(selected)-1)
             if p1 == p2:
