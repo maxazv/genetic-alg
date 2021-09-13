@@ -73,7 +73,7 @@ def main(verbose):
         eval(gen, target_pos)
         gen = gen[::-1]
         new_gen = crossover(gen, 10)
-        mutate(new_gen)
+        mutate(new_gen) # FIXME: only mutate children
 
         survived = len(gen)-1
         #print("Survived:", survived)
@@ -174,7 +174,6 @@ def crossover(droids, att):
             if p1 == p2:
                 atmpt -= 1
                 continue
-            # new_gen.append(selected[p1])
             new_gen.append(make_child(selected[p1], selected[p2])) # FIXME
             break
     return new_gen
