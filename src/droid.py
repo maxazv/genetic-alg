@@ -1,7 +1,7 @@
 from brain import Brain
 from graphics import Point
 
-SCALAR = 7.25
+SCALAR = 3
 
 class Droid():
     def __init__(self, layer_shapes, pos=Point(0, 0)) -> None:

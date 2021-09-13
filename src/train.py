@@ -28,7 +28,7 @@ verbose = True
 
 # ----setup
 def init(amount):
-    first_gen = [Droid([4, 5, 5, 2], Point(200, 200)) for i in range(amount)]
+    first_gen = [Droid([4, 15, 15, 2], Point(200, 200)) for i in range(amount)]
     target_x, target_y = rand.random()*WINDOW_WIDTH, rand.random()*WINDOW_HEIGHT
     target = Point(target_x, target_y)
     return first_gen, target
@@ -38,8 +38,8 @@ def main(verbose):
     win = GraphWin("Simul", WINDOW_WIDTH, WINDOW_HEIGHT, autoflush=False)
     win.setBackground(color_rgb(50, 48, 60))
 
-    steps = 15
-    iter = 20
+    steps = 50
+    iter = 10
 
     items = []
     gen, target_pos = init(GEN_AMOUNT)
@@ -58,27 +58,31 @@ def main(verbose):
     items.append(target)
 
 
-    # -draw-
-    survived = 0
+    # FIXME: pop decreasing even though crossover prevents that
+    # FIXME: apex droids are still being "replaced"
+    # -draw-    
     show(items[GEN_AMOUNT:], win)
+
     for i in range(iter):
         show(items[:GEN_AMOUNT], win)
         for j in range(steps):
             perform(items, gen)
             update(30)
 
+        time.sleep(0.25)
         eval(gen, target_pos)
         gen = gen[::-1]
         new_gen = crossover(gen, 10)
         mutate(new_gen)
 
-        survived = len(gen)
+        survived = len(gen)-1
+        #print("Survived:", survived)
         print_score(gen, 0, int(GEN_AMOUNT*0.3), "Apex Droids:")
-        print(len(new_gen))
+        print("Gen Pop:", len(new_gen))
 
         gen = new_gen
-        items = items[GEN_AMOUNT:]
-        items[0:0] = [Circle(x.pos, 5) for x in gen]
+        items = items[GEN_AMOUNT:]  # target
+        items[0:0] = [Circle(Point(200, 200), 5) for x in gen]
 
         update()
 
@@ -111,7 +115,7 @@ def print_score(gen, start, end, msg=""):
 def perform(items, gen):
     droids, target = items[:GEN_AMOUNT], items[GEN_AMOUNT:][0]
     pos_t = target.getCenter()
-
+    
     for i in range(len(gen)):
         inp_t = conv_pnt(pos_t)
         inp_d = conv_pnt(gen[i].pos)
@@ -134,8 +138,9 @@ def eval(droids, target):
     # slightly mutate new bred droids
     # keep best performing droids from previous gen
     for droid in droids:
-        if droid.pos.x < 0 or droid.pos.y < 0 or droid.pos.x > WINDOW_WIDTH and droid.pos.y > WINDOW_HEIGHT:
-            droid.alive = False
+        #if droid.pos.x < 0 or droid.pos.y < 0 or droid.pos.x > WINDOW_WIDTH and droid.pos.y > WINDOW_HEIGHT:
+        #    droid.alive = False
+        #    print('dead')
         dx = target.x - droid.pos.x
         dy = target.y - droid.pos.y
         dist = math.sqrt(sum([pow(dx, 2), pow(dy, 2)]))
@@ -152,26 +157,25 @@ def eval(droids, target):
 
 
 
-# TODO: test
 def crossover(droids, att):
     # randomly select droids from gen to breed new child with their nn-weights/ -biases
     # selection biased by their performance e.g. better score -> more likely to be selected
     gen_apex = int(len(droids)*APEX_SURVIVORS)
+    # gen_apex = 5
     selected = select_by_fitness(droids, gen_apex)
 
     new_gen = selected[:gen_apex]
+    print("Crossover Selected:", len(selected))
     for i in range(GEN_AMOUNT-gen_apex):
         atmpt = att
         while atmpt > 0:
-            # FIXME: length of selected suddenly -> 0
-            print(len(selected))
             p1 = rand.randint(0, len(selected)-1)
             p2 = rand.randint(0, len(selected)-1)
             if p1 == p2:
                 atmpt -= 1
                 continue
-
-            new_gen.append(make_child(selected[p1], selected[p2]))
+            # new_gen.append(selected[p1])
+            new_gen.append(make_child(selected[p1], selected[p2])) # FIXME
             break
     return new_gen
 
@@ -196,24 +200,26 @@ def make_child(p1, p2):
     return child
 
 def select_by_fitness(droids, gen_apex):
-    sum_scores = 0
+    avg_scores = 0
     selected = []
-    #quicksort(droids, 0, len(droids)-1)
-    #droids = droids[::-1]   # reversing list
 
     for droid in droids[gen_apex:]:
-        sum_scores += droid.score
+        avg_scores += droid.score
 
+    avg_scores //= int(len(droids)*0.45)
+    # print("Average Score:", avg_scores)
     for droid in droids:
         if gen_apex > 0:
+            #print("A")
             selected.append(droid)
+            gen_apex -= 1
             continue
         
-        prob = rand.randint(0, sum_scores)
+        prob = rand.randint(0, avg_scores)
         if(droid.score > prob):
+            #print("B")
             selected.append(droid)
 
-        gen_apex -= 1
     return selected
 
 def partition(arr, low, high):
