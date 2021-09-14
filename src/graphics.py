@@ -785,7 +785,6 @@ class Entry(GraphicsObject):
     def __init__(self, p, width):
         GraphicsObject.__init__(self, [])
         self.anchor = p.clone()
-        #print self.anchor
         self.width = width
         self.text = tk.StringVar(_root)
         self.text.set("")

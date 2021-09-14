@@ -22,6 +22,9 @@ APEX_SURVIVORS = 0.25
 MUTATION_RATE = 0.3
 MUT_AMOUNT = 0.7
 
+def ORIGIN():
+    return Point(200, 200)
+
 verbose = True
 
 
@@ -65,7 +68,7 @@ def main(verbose):
 
     for i in range(iter):
         show(items[:GEN_AMOUNT], win)
-        print_score(gen, 0, len(gen), "Current Gen:")
+        #print_score(gen, 0, len(gen), "Current Gen:")
 
         for j in range(steps):
             perform(items, gen)
@@ -75,22 +78,25 @@ def main(verbose):
         #assign score to droids based on fitness func
         eval(gen, target_pos)
         gen = gen[::-1]
+        #print_score(gen, 0, len(gen)-1, "Apex Surv:")
 
         #conserve best droids
         gen_apex = int(len(gen) * APEX_SURVIVORS)
-        new_gen = gen[:gen_apex]
-        survived = len(new_gen)
-        print("Survivors:", [x.score for x in new_gen])
+        apex_surv = gen[:gen_apex]
+        survived = len(apex_surv)
 
         #crossover & mutation
-        new_gen.extend(crossover(gen, 10, survived))
+        new_gen = crossover(gen, 10, survived)
+        print_score(new_gen, 0, len(new_gen)-1, "NEW GEN")
         # mutate(new_gen) # FIXME: only mutate children
 
         print("Gen Pop:", len(new_gen))
 
         #update new generation
-        gen = new_gen
-        items = [Circle(Point(200, 200), 5) for x in gen]
+        gen = apex_surv + new_gen
+        for x in gen:
+            x.reset(ORIGIN())
+        items = [Circle(ORIGIN(), 5) for x in gen]
         items.append(target)
 
         print()
@@ -153,9 +159,6 @@ def eval(droids, target):
         #    droid.alive = False
         #    print('dead')
         dst = dist(target, droid.pos)
-        #dx = target.x - droid.pos.x
-        #dy = target.y - droid.pos.y
-        #dist = math.sqrt(sum([pow(dx, 2), pow(dy, 2)]))
         droid.score = int((10/(dst-(dst*0.75)))*100)
 
     c=0
@@ -170,25 +173,24 @@ def eval(droids, target):
 def crossover(droids, att, survivors):
     # randomly select droids from gen to breed new child with their nn-weights/ -biases
     # selection biased by their performance e.g. better score -> more likely to be selected
-    selected = select_by_fitness(droids)
-
     new_gen = []
-    print("Crossover Selected:", len(selected))
+
     for i in range(GEN_AMOUNT-survivors):
-        atmpt = att
-        while atmpt > 0:
-            p1 = rand.randint(0, len(selected)-1)
-            p2 = rand.randint(0, len(selected)-1)
-            if p1 == p2:
-                atmpt -= 1
-                continue
-            new_gen.append(make_child(selected[p1], selected[p2])) # FIXME
-            break
+        (p1, a), (p2, b) = get_parent(droids), get_parent(droids)
+        while(a == b):  # ensure not the same p1 and p2 arent equal
+            p2, b = get_parent(droids)
+        
+        new_gen.append(make_child(p1, p2))
+
     return new_gen
+
+def get_parent(droids):
+    if rand.random() > 0.5:
+        return biased_selection(droids) # TODO: optimise and test properly
+    return tournament_selection(droids)
 
 def make_child(p1, p2):
     child = p1
-    child.origin, child.pos = p1.origin, p1.origin
     for i in range(len(p1.brain.network)):
         if i%2 == 0:
             shape_w, shape_b = p1.brain.network[i].w.shape, p1.brain.network[i].b.size
@@ -206,22 +208,37 @@ def make_child(p1, p2):
             continue
     return child
 
-def select_by_fitness(droids):
-    avg_scores = 0
-    selected = []
+def biased_selection(droids):
+    sum = 0
+    for x in droids:
+        sum += x.score
+    
+    inv_sum = 0
+    for x in droids:
+        x.norm = sum/x.score
+        inv_sum += x.norm
+    for x in droids:
+        x.norm = inv_sum/x.norm
+    
+    acc_prop = []
+    total = 0
+    for x in droids:
+        total += x.norm
+        acc_prop.append(total)
+    
+    select = rand.random()
+    for i in range(len(acc_prop)):
+        if acc_prop[i] >= select:
+            return droids[i], i
 
-    for droid in droids:
-        avg_scores += droid.score
-    avg_scores = int(avg_scores)
-    avg_scores //= int(len(droids)*0.45)
-    print("Average Score:", avg_scores)
-
-    for droid in droids:
-        prob = rand.randint(0, avg_scores)
-        if(droid.score > prob):
-            #print(droid.score)
-            selected.append(droid)
-    return selected
+def tournament_selection(droids):
+    a = rand.randint(0, len(droids)-1)
+    b = rand.randint(0, len(droids)-1)
+    while(a == b):
+        b = rand.randint(0, len(droids)-1)
+    if droids[a].score > droids[b].score:
+        return droids[a], a
+    return droids[b], b
 
 def partition(arr, low, high):
     i = (low-1)
