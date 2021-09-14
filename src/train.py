@@ -44,8 +44,8 @@ def main(verbose):
     win = GraphWin("Simul", WINDOW_WIDTH, WINDOW_HEIGHT, autoflush=False)
     win.setBackground(color_rgb(50, 48, 60))
 
-    steps = 200
-    iter = 50
+    steps = 50
+    iter = 7
 
     items = []
     gen, target_pos = init(GEN_AMOUNT)
@@ -84,11 +84,12 @@ def main(verbose):
         print(gen_apex)
         gen = gen[::-1]
         apex_surv = gen[:gen_apex]
+        print_score(apex_surv, 0, len(apex_surv)-1, "Apex Survivors")
         survived = len(apex_surv)
 
         #crossover & mutation
         new_gen = crossover(gen, 10, survived)
-        print_score(new_gen, 0, len(new_gen)-1, "NEW GEN")
+        print_score(new_gen, 0, len(new_gen)//2, "HALF NEW GEN")
         # mutate(new_gen)
 
         #update new generation
@@ -166,8 +167,9 @@ def eval(droids, target):
     c=0
     for i in range(len(droids)-c):
         if not droids[i-c].alive:
-            droids.pop(i-c)
-            c+=1
+            #droids.pop(i-c)
+            #c+=1
+            droids[i].score = 0
 
     quicksort(droids, 0, len(droids)-1)
 
@@ -181,7 +183,7 @@ def crossover(droids, att, survivors):
         (p1, a), (p2, b) = get_parent(droids), get_parent(droids)
         while(a == b):  # ensure not the same p1 and p2 arent equal
             p2, b = get_parent(droids)
-        new_gen.append(p1) if p1.score > p2.score else new_gen.append(p2) #FIXME
+        new_gen.append(p1) if p1.score > p2.score else new_gen.append(p2) #FIXME: decomment below
         #new_gen.append(make_child(p1, p2))
 
     return new_gen
@@ -224,7 +226,10 @@ def biased_selection(droids):
         inv_sum += x.norm
 
     for x in droids:
-        x.norm = inv_sum/x.norm
+        if x.norm == 0:
+            x.norm = inv_sum
+        else:
+            x.norm = inv_sum/x.norm
     
     acc_prop = []
     total = 0
