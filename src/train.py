@@ -20,6 +20,7 @@ GEN_AMOUNT = 50
 APEX_SURVIVORS = 0.25
 
 MUTATION_RATE = 0.3
+MUTATION_CHANCE = 0.05
 MUT_AMOUNT = 0.7
 
 def ORIGIN():
@@ -31,9 +32,11 @@ verbose = True
 
 # ----setup
 def init(amount):
-    first_gen = [Droid([4, 15, 15, 2], Point(200, 200)) for i in range(amount)]
+    first_gen = [Droid([4, 15, 15, 2], ORIGIN()) for i in range(amount)]
+
     target_x, target_y = rand.random()*WINDOW_WIDTH, rand.random()*WINDOW_HEIGHT
     target = Point(target_x, target_y)
+    
     return first_gen, target
 
 def main(verbose):
@@ -41,35 +44,33 @@ def main(verbose):
     win = GraphWin("Simul", WINDOW_WIDTH, WINDOW_HEIGHT, autoflush=False)
     win.setBackground(color_rgb(50, 48, 60))
 
-    steps = 50
-    iter = 10
+    steps = 200
+    iter = 50
 
     items = []
     gen, target_pos = init(GEN_AMOUNT)
-    t_greyscale = 165
+    t_greyscale = 170
     t_outline = int(t_greyscale*0.35)
+    rgb = color_rgb(t_greyscale-t_outline, t_greyscale-t_outline, t_greyscale-t_outline)
 
     for obj in gen:
         graph_obj = Circle(obj.pos, 5)
         graph_obj.setFill(color_rgb(rand.randint(0, 255), rand.randint(0, 255), rand.randint(0, 255)))
-        graph_obj.setOutline(color_rgb(t_greyscale-t_outline, t_greyscale-t_outline, t_greyscale-t_outline))
+        graph_obj.setOutline(rgb)
         items.append(graph_obj)
 
     target = Circle(target_pos, 10)
     target.setFill(color_rgb(t_greyscale, t_greyscale, t_greyscale))
-    target.setOutline(color_rgb(t_greyscale-t_outline, t_greyscale-t_outline, t_greyscale-t_outline))
+    target.setOutline(rgb)
     items.append(target)
 
 
-    # FIXME: selected decreasing even though crossover prevents that
-    # FIXME: apex droids are still being "replaced"
+    # FIXME: apex droids are still being "overwritten"/ "disappearing"
     # -draw-    
     show(items[GEN_AMOUNT:], win)
 
     for i in range(iter):
         show(items[:GEN_AMOUNT], win)
-        #print_score(gen, 0, len(gen), "Current Gen:")
-
         for j in range(steps):
             perform(items, gen)
             update(30)
@@ -77,23 +78,24 @@ def main(verbose):
         time.sleep(0.25)
         #assign score to droids based on fitness func
         eval(gen, target_pos)
-        gen = gen[::-1]
-        #print_score(gen, 0, len(gen)-1, "Apex Surv:")
 
         #conserve best droids
         gen_apex = int(len(gen) * APEX_SURVIVORS)
+        print(gen_apex)
+        gen = gen[::-1]
         apex_surv = gen[:gen_apex]
         survived = len(apex_surv)
 
         #crossover & mutation
         new_gen = crossover(gen, 10, survived)
         print_score(new_gen, 0, len(new_gen)-1, "NEW GEN")
-        # mutate(new_gen) # FIXME: only mutate children
-
-        print("Gen Pop:", len(new_gen))
+        # mutate(new_gen)
 
         #update new generation
         gen = apex_surv + new_gen
+        print("Gen Pop:", len(new_gen))
+        if i+1 == iter:
+            break
         for x in gen:
             x.reset(ORIGIN())
         items = [Circle(ORIGIN(), 5) for x in gen]
@@ -109,7 +111,8 @@ def main(verbose):
             t = Text(Point(d.pos.x, d.pos.y-13), str(d.score)).draw(win)
             t.setFill(color_rgb(115, 112, 119))
             t.setSize(10)
-
+    quicksort(gen, 0, len(gen)-1)
+    print("Best?", gen[len(gen)-1].score)
     # -close-
     win.getMouse()
     win.close()
@@ -155,9 +158,8 @@ def eval(droids, target):
     # slightly mutate new bred droids
     # keep best performing droids from previous gen
     for droid in droids:
-        #if droid.pos.x < 0 or droid.pos.y < 0 or droid.pos.x > WINDOW_WIDTH and droid.pos.y > WINDOW_HEIGHT:
-        #    droid.alive = False
-        #    print('dead')
+        if droid.pos.x < 0 or droid.pos.y < 0 or droid.pos.x > WINDOW_WIDTH and droid.pos.y > WINDOW_HEIGHT:
+            droid.alive = False
         dst = dist(target, droid.pos)
         droid.score = int((10/(dst-(dst*0.75)))*100)
 
@@ -179,8 +181,8 @@ def crossover(droids, att, survivors):
         (p1, a), (p2, b) = get_parent(droids), get_parent(droids)
         while(a == b):  # ensure not the same p1 and p2 arent equal
             p2, b = get_parent(droids)
-        
-        new_gen.append(make_child(p1, p2))
+        new_gen.append(p1) if p1.score > p2.score else new_gen.append(p2) #FIXME
+        #new_gen.append(make_child(p1, p2))
 
     return new_gen
 
@@ -215,8 +217,12 @@ def biased_selection(droids):
     
     inv_sum = 0
     for x in droids:
-        x.norm = sum/x.score
+        if x.score == 0:
+            x.norm = sum
+        else:
+            x.norm = sum/x.score
         inv_sum += x.norm
+
     for x in droids:
         x.norm = inv_sum/x.norm
     
@@ -266,25 +272,26 @@ def mutate(droids):
     # slightly mutate randomly selected weights
     # whether weight is mutated or not is determined by chance
     for droid in droids:
-        for i in range(len(droid.brain.network)):
-            if i%2 == 0:    # dense layer
-                layer = droid.brain.network[i]
-                prob_w = np.random.uniform(0, 1, size=layer.w.shape)
-                prob_b = np.random.uniform(0, 1, size=(layer.b.size, 1))
+        if(rand.randint() > MUTATION_CHANCE):
+            for i in range(len(droid.brain.network)):
+                if i%2 == 0:    # dense layer
+                    layer = droid.brain.network[i]
+                    prob_w = np.random.uniform(0, 1, size=layer.w.shape)
+                    prob_b = np.random.uniform(0, 1, size=(layer.b.size, 1))
 
-                cond_w = [prob_w > MUTATION_RATE, prob_w <= MUTATION_RATE]
-                cond_b = [prob_b > MUTATION_RATE, prob_b <= MUTATION_RATE]
+                    cond_w = [prob_w > MUTATION_RATE, prob_w <= MUTATION_RATE]
+                    cond_b = [prob_b > MUTATION_RATE, prob_b <= MUTATION_RATE]
 
-                choice_w = [layer.w, layer.w*(np.random.normal(-2, 2)*MUT_AMOUNT)]
-                choice_b = [layer.b, layer.b*(np.random.normal(-2, 2)*MUT_AMOUNT)]
+                    choice_w = [layer.w, layer.w*(np.random.normal(-2, 2)*MUT_AMOUNT)]
+                    choice_b = [layer.b, layer.b*(np.random.normal(-2, 2)*MUT_AMOUNT)]
 
-                mut_weights = np.select(cond_w, choice_w)
-                mut_bias = np.select(cond_b, choice_b)
+                    mut_weights = np.select(cond_w, choice_w)
+                    mut_bias = np.select(cond_b, choice_b)
 
-                droid.brain.network[i].w = mut_weights
-                droid.brain.network[i].b = mut_bias
-            else:           # activation layer → no weights, bias to be mutated
-                continue
+                    droid.brain.network[i].w = mut_weights
+                    droid.brain.network[i].b = mut_bias
+                else:           # activation layer → no weights, bias to be mutated
+                    continue
 
 
 
