@@ -1,2 +1,2 @@
-# genetic-alg
-Simple Genetic-Algorithm for Droids
+### genetic-alg (Not Finished)
+> Simple Genetic-Algorithm for Droids
